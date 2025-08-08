@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Keyboard, ActivityIndicator, Alert } from "react-native";
-import SearchInput from "./";
+import SearchInput from "../components/SearchInput";
 import { geocodeOne } from "../services/geocoding";
 import { formatKm, formatMins } from "../utils/format";
 import { openExternalMaps } from "../utils/openExternalMaps";
@@ -25,6 +25,11 @@ export default function HomeScreen() {
   const [duration, setDuration] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // UI derived state
+  const canFind = !loading && ((origin || fromText?.trim()) && (dest || toText?.trim()));
+  const canOpen = !!(origin && dest);
+  const canClear = !!(fromText || toText || origin || dest || (routeCoords && routeCoords.length));
+
   const handlePickFrom = (item) => {
     setOrigin({ latitude: item.latitude, longitude: item.longitude });
     setFromText(item.label);
@@ -41,6 +46,16 @@ export default function HomeScreen() {
       o: o ? { latitude: o.latitude, longitude: o.longitude } : null,
       d: d ? { latitude: d.latitude, longitude: d.longitude } : null,
     };
+  }
+
+  function onClear() {
+    setFromText("");
+    setToText("");
+    setOrigin(null);
+    setDest(null);
+    setRouteCoords([]);
+    setDistance(null);
+    setDuration(null);
   }
 
   async function onFindRoute() {
@@ -70,7 +85,15 @@ export default function HomeScreen() {
       // If Map exposes fitToCoordinates via ref, you can call it here.
       // Example (if implemented): mapRef.current?.fitToCoordinates(coords)
     } catch (e) {
-      Alert.alert("Route error", "Could not fetch route. Please try again.");
+      setRouteCoords([]);
+      const msg = e?.message || "Unknown error";
+      if (/no route/i.test(msg)) {
+        Alert.alert("No route", "No route found between the selected points. Try different nearby points.");
+      } else if (/network request failed/i.test(msg)) {
+        Alert.alert("Network error", "Please check your internet connection and try again.");
+      } else {
+        Alert.alert("Route error", msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -109,11 +132,26 @@ export default function HomeScreen() {
         />
 
         <View style={styles.row}>
-          <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={onFindRoute} disabled={loading}>
-            {loading ? <ActivityIndicator /> : <Text style={styles.btnText}>Find Route</Text>}
+          <TouchableOpacity
+            style={[styles.btn, { flex: 1 }, !canFind && styles.btnDisabled]}
+            onPress={onFindRoute}
+            disabled={!canFind}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Find Route</Text>}
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.btnGhost, { marginLeft: 8 }]} onPress={onOpenInMaps}>
+          <TouchableOpacity
+            style={[styles.btnGhost, { marginLeft: 8 }, !canOpen && styles.btnGhostDisabled]}
+            onPress={onOpenInMaps}
+            disabled={!canOpen}
+          >
             <Text style={styles.btnGhostText}>Open in Maps</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.btnGhost, { marginLeft: 8 }, !canClear && styles.btnGhostDisabled]}
+            onPress={onClear}
+            disabled={!canClear}
+          >
+            <Text style={styles.btnGhostText}>Clear</Text>
           </TouchableOpacity>
         </View>
 
@@ -139,12 +177,14 @@ const styles = StyleSheet.create({
     backgroundColor: "black", borderRadius: 8, height: 44,
     alignItems: "center", justifyContent: "center",
   },
+  btnDisabled: { backgroundColor: "#999" },
   btnText: { color: "white", fontWeight: "600" },
   btnGhost: {
     paddingHorizontal: 12, height: 44, alignItems: "center",
     justifyContent: "center", borderRadius: 8, borderWidth: 1, borderColor: "#ccc",
   },
   btnGhostText: { color: "#333" },
+  btnGhostDisabled: { opacity: 0.5 },
   summary: { marginTop: 8, fontWeight: "600" },
   attrib: { marginTop: 6, fontSize: 12, color: "#666" },
 });

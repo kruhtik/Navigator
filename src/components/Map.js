@@ -37,10 +37,27 @@ const Map = forwardRef(function Map(
     [origin, destination, routeCoords]
   );
 
+  // Also auto-fit whenever the route updates (not only on first map ready)
+  React.useEffect(() => {
+    if (origin && destination && routeCoords.length > 1 && mapRef.current) {
+      mapRef.current.fitToCoordinates(routeCoords, {
+        edgePadding: getEdgePadding(40),
+        animated: true,
+      });
+    }
+  }, [origin, destination, routeCoords]);
+
   // Auto-fit after first layout
   function onMapReady() {
     if (shouldAutoFit) {
-      setTimeout(() => ref?.current?.fitToCoordinates?.(routeCoords), 0);
+      setTimeout(() => {
+        if (mapRef.current && routeCoords.length > 1) {
+          mapRef.current.fitToCoordinates(routeCoords, {
+            edgePadding: getEdgePadding(40),
+            animated: true,
+          });
+        }
+      }, 0);
     }
   }
 
@@ -54,7 +71,7 @@ const Map = forwardRef(function Map(
       >
         {/* Free OpenStreetMap tiles */}
         <UrlTile
-          urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           maximumZ={19}
           tileSize={256}
           zIndex={-1}
@@ -64,7 +81,12 @@ const Map = forwardRef(function Map(
         {destination && <Marker coordinate={destination} title="Destination" />}
 
         {routeCoords?.length ? (
-          <Polyline coordinates={routeCoords} strokeWidth={5} />
+          <Polyline
+            coordinates={routeCoords}
+            strokeWidth={5}
+            strokeColor="#007AFF"
+            zIndex={10}
+          />
         ) : null}
       </MapView>
     </View>
