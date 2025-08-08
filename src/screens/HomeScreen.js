@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Keyboard, ActivityIndicator, Alert } from "react-native";
-import SearchInput from "../components/SearchInput";
+import SearchInput from "./";
 import { geocodeOne } from "../services/geocoding";
 import { formatKm, formatMins } from "../utils/format";
 import { openExternalMaps } from "../utils/openExternalMaps";
